@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -20,7 +18,6 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required',
         ]);
-        // dd($validatedData['user_type']);exit;
 
         // Create a new user
         $user = User::create([
@@ -83,7 +80,6 @@ class UserController extends Controller
             'type' => 'required',
             'new_data' => 'required',
         ]);
-        // dd($validatedData['user_type']);exit;
 
         if ($validatedData["type"] == "wallet") {
             // Create a new user
@@ -95,8 +91,6 @@ class UserController extends Controller
                 "status"=> "false",
                 "message"=> "User not found",
             ]);
-    
-            // ->firstOrCreate(["wallet"], [$validatedData["new_data"]]);
     
             // Return a response with the newly created user
             if ($user->wallet) {
@@ -132,8 +126,6 @@ class UserController extends Controller
                 "status"=> "false",
                 "message"=> "User or depositAccount not found",
             ]);
-    
-            // ->firstOrCreate(["wallet"], [$validatedData["new_data"]]);
     
             // Return a response with the newly created user
             $transaction_up = $user->depositAccount->transactions()->create([
