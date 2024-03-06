@@ -9,14 +9,14 @@ class AddNameToDepositAccountsTable extends Migration
     public function up()
     {
         Schema::table('deposit_accounts', function (Blueprint $table) {
-            $table->string('name', 255)->after('plan_id');
+            // $table->string('name', 255)->after('plan_id');
         });
     }
 
     public function down()
     {
         Schema::table('deposit_accounts', function (Blueprint $table) {
-            $table->dropColumn('name');
+            // $table->dropColumn('name');
         });
     }
 }

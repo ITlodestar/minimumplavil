@@ -17,7 +17,7 @@ class CreateDepositAccountsTable extends Migration
     $table->id();
     $table->foreignId('user_id')->constrained('users');
     $table->foreignId('plan_id')->constrained('plans');
-     $table->string('name', 255); // Add this line
+    $table->string('name', 255); // Add this line
     $table->timestamps();
 });
 }
