@@ -28,6 +28,7 @@ class User extends Authenticatable
         'nickname',
         'type',
         'remember_token',
+        'country',
     ];
 
     /**
