@@ -10,7 +10,7 @@ use App\Models\DepositAccount;
 class Plan extends Model
 {
     use HasFactory;
-    protected $table = 'deposit_accounts';
+    protected $table = 'plans';
     /**
      * The attributes that are mass assignable.
      *

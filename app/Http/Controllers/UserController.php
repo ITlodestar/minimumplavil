@@ -15,8 +15,8 @@ class UserController extends Controller
             'user_type' => 'required',
             'user_tgid' => 'required|unique:users,tgid',
             'user_nickname' => 'required',
-            'name' => 'required',
-            'email' => 'required',
+            'wallet' => 'required',
+            'country' => 'required',
         ]);
 
         // Create a new user
@@ -24,17 +24,24 @@ class UserController extends Controller
             'type' => $validatedData['user_type'],
             'tgid' => $validatedData['user_tgid'],
             'nickname' => $validatedData['user_nickname'],
-            'name' => $validatedData['name'],
-            'email' => $validatedData['email'],
+            'country' => $validatedData['country'],
         ]);
 
         // Create a new deposit account
-        $depositAccount = $user->depositAccount()->updateOrCreate(
+        $depositAccount = $user->depositAccount()->create(
             [
                 'user_id' => $user->id,
                 'plan_id' => "2",
-            ],
-            ['name' => $validatedData["name"]]
+                'name' => $validatedData["user_nickname"],
+            ]
+        );
+
+        // Create a new wallet
+        $depositAccount = $user->wallet()->create(
+            [
+                'user_id' => $user->id,
+                'wallet' => $validatedData["wallet"],
+            ]
         );
 
         // Return a response with the newly created user
