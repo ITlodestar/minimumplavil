@@ -30,4 +30,8 @@ class Plan extends Model
         return $this->HasMany(DepositAccount::class);
     }
     
+    public static function idByName($name)
+    {
+        return Plan::where("name", $name)->first("id")->id;
+    }
 }

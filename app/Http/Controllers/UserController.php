@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Wallet;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Validator;
 
@@ -15,7 +16,7 @@ class UserController extends Controller
             'user_type' => 'required',
             'user_tgid' => 'required|unique:users,tgid',
             'user_nickname' => 'required',
-            'wallet' => 'required',
+            'wallet' => 'required|unique:wallets,wallet',
             'country' => 'required',
         ]);
         if ($validator->fails()) { 
@@ -40,7 +41,7 @@ class UserController extends Controller
         $depositAccount = $user->depositAccount()->create(
             [
                 'user_id' => $user->id,
-                'plan_id' => "2",
+                'plan_id' => Plan::idByName("BALANCE"),
                 'name' => $validatedData["user_nickname"],
             ]
         );
