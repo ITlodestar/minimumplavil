@@ -5,20 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Validator;
 
 class UserController extends Controller
 {
     public function store(Request $request)
     {
-        // Validate the request data
-        $validatedData = $request->validate([
+        $validator = Validator::make($request->all(), [ 
             'user_type' => 'required',
             'user_tgid' => 'required|unique:users,tgid',
             'user_nickname' => 'required',
             'wallet' => 'required',
             'country' => 'required',
         ]);
-
+        if ($validator->fails()) { 
+            $response = [
+                        'status' => 'false',
+                        'error' => $validator->errors(),
+                    ];
+            return response()->json($response, 401);   
+        }
+        
+        $validatedData = $validator->getData();
+        
         // Create a new user
         $user = User::create([
             'type' => $validatedData['user_type'],
