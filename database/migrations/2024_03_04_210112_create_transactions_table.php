@@ -15,6 +15,7 @@ class CreateTransactionsTable extends Migration
     {
 Schema::create('transactions', function (Blueprint $table) {
     $table->id();
+    $table->string('uuid', 100);
     $table->foreignId('user_id')->constrained('users');
     $table->foreignId('deposit_account_id')->constrained('deposit_accounts');
     $table->decimal('amount', 10, 2);

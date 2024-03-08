@@ -22,9 +22,10 @@ Route::get('/test', function () {
 });
 
 Route::post('/user', [UserController::class, 'store']);
-Route::patch('/user', [UserController::class, 'update']);
+Route::post('/deposit', [UserController::class, 'deposit']);
 Route::get('/user/{user_tgid}', [UserController::class, 'getUserByTgid']);
 Route::post('/check_wallet', [WalletController::class, 'checkWallet']);
+Route::post('/update_wallet', [WalletController::class, 'updateWallet']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

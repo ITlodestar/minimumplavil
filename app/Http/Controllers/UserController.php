@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DepositAccount;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Plan;
 use Illuminate\Http\Request;
 use Validator;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -38,7 +41,7 @@ class UserController extends Controller
         ]);
 
         // Create a new deposit account
-        $depositAccount = $user->depositAccount()->create(
+        $depositAccount = DepositAccount::create(
             [
                 'user_id' => $user->id,
                 'plan_id' => Plan::idByName("BALANCE"),
@@ -47,7 +50,7 @@ class UserController extends Controller
         );
 
         // Create a new wallet
-        $depositAccount = $user->wallet()->create(
+        $depositAccount = Wallet::create(
             [
                 'user_id' => $user->id,
                 'wallet' => $validatedData["wallet"],
@@ -89,86 +92,67 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request)
+    public function deposit(Request $request)
     {
-        // Validate the request data
-        $validatedData = $request->validate([
-            'tgid' => 'required',
-            'type' => 'required',
-            'new_data' => 'required',
+        $validator = Validator::make($request->all(), [ 
+            'user_tgid' => 'required|exists:users,tgid',
+            'amount' => 'required',
+        ]);
+        
+        if ($validator->fails()) {
+            $response = [
+                        'status' => 'false',
+                        'error' => $validator->errors(),
+                    ];
+            return response()->json($response, 401);
+        }
+    
+        $validatedData = $validator->getData();
+        $user = User::userByTgid($validatedData["user_tgid"]);
+        $userDepositAccount = $user->depositAccount()->where(["plan_id"=>"2"])->first();
+
+        if(!$user || !$userDepositAccount) return response()->json([
+            "status"=> "false",
+            "message"=> "User or depositAccount not found",
         ]);
 
-        if ($validatedData["type"] == "wallet") {
-            // Create a new user
-            $user = User::where([
-                'tgid' => $validatedData['tgid'],
-            ])->with("wallet")->first();
-    
-            if(!$user) return response()->json([
-                "status"=> "false",
-                "message"=> "User not found",
-            ]);
-    
-            // Return a response with the newly created user
-            if ($user->wallet) {
-                return response()->json([
-                    'status' => 'false',
-                    'message' => 'Wallet already created',
-                    'user' => $user,
-                ], 201);
-            } else {
-                $wallet = Wallet::create([
-                    "user_id" => $user->id,
-                    "wallet" => $validatedData["new_data"]
-                ]);
-                if ($wallet) {
-                    return response()->json([
-                        'status' => 'true',
-                        'message' => 'Wallet created successfully',
-                    ], 404);
-                } else {
-                    return response()->json([
-                        'status' => 'false',
-                        'message' => 'Failed to create the wallet',
-                    ], 404);
-                }
-            }
-        } else if ($validatedData["type"] == "add_balance") {
-            // Create a new user
-            $user = User::where([
-                'tgid' => $validatedData['tgid'],
-            ])->with("depositAccount")->first();
-    
-            if(!$user || !$user->depositAccount) return response()->json([
-                "status"=> "false",
-                "message"=> "User or depositAccount not found",
-            ]);
-    
-            // Return a response with the newly created user
-            $transaction_up = $user->depositAccount->transactions()->create([
-                // "uuid" => "01",
-                "user_id" => $user->id,
-                "deposit_account_id" => $user->depositAccount->id,
-                "amount" => -$validatedData["new_data"],
-            ]);
-            $transaction_up = $user->depositAccount->transactions()->create([
-                // "uuid" => "01",
-                "user_id" => $user->id,
-                "deposit_account_id" => $user->depositAccount->id,
-                "amount" => $validatedData["new_data"],
-            ]);
+        $systemUser = User::userByTgid("0");
+        $systemAccount = DepositAccount::where([
+            "user_id"=>$systemUser->id,
+            "name"=>"OUT",
+        ])->first();
 
-            if ($transaction_up) {
-                return response()->json([
-                    'status' => 'true',
-                    'message' => 'Transaction created successfully',
-                ], 404);
-            } else {
-                return response()->json([
-                    'status' => 'false',
-                    'message' => 'Failed to create the transaction',
-                ], 404);
-            }
+        if(!$systemAccount) return response()->json([
+            "status"=> "false",
+            "message"=> "SystemAccount not registered yet",
+        ]);
+
+        $uuid = Str::uuid();
+        $amount = $validatedData["amount"];
+
+        $transaction_0 = Transaction::create([
+            "uuid" => $uuid,
+            "user_id" => $user->id,
+            "deposit_account_id" => $userDepositAccount->id,
+            "amount" => $amount,
+        ]);
+        $transaction_1 = Transaction::create([
+            "uuid" => $uuid,
+            "user_id" => $systemUser->id,
+            "deposit_account_id" => $systemAccount->id,
+            "amount" => -$amount,
+        ]);
+
+        if ($transaction_0 && $transaction_1) {
+            return response()->json([
+                'status' => 'true',
+                'message' => 'Transaction of '.$amount.' created successfully',
+            ], 201);
+        } else {
+            return response()->json([
+                'status' => 'false',
+                'message' => 'Failed to create the transaction',
+            ], 404);
         }
     }
 }

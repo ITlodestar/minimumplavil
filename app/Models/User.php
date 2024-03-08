@@ -64,17 +64,17 @@ class User extends Authenticatable
     /**
      * Get the deposit_account associated with the user.
      */
-    public function depositAccount(): HasOne
+    public function depositAccount(): HasMany
     {
-        return $this->hasOne(DepositAccount::class);
+        return $this->hasMany(DepositAccount::class);
     }
     
     /**
      * Get the deposit_account associated with the user.
      */
-    public function wallet(): HasOne
+    public function wallet(): HasMany
     {
-        return $this->hasOne(Wallet::class);
+        return $this->hasMany(Wallet::class);
     }
     
     /**
@@ -83,5 +83,10 @@ class User extends Authenticatable
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+    
+    public static function userByTgid($tgid)
+    {
+        return User::where("tgid", $tgid)->first("id");
     }
 }
