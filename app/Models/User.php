@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\DepositAccount;
 use App\Models\Wallet;
@@ -87,6 +88,6 @@ class User extends Authenticatable
     
     public static function userByTgid($tgid)
     {
-        return User::where("tgid", $tgid)->first("id");
+        return User::where("tgid", $tgid)->first();
     }
 }

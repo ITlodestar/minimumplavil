@@ -10,6 +10,7 @@ use App\Models\Plan;
 use Illuminate\Http\Request;
 use Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -32,6 +33,7 @@ class UserController extends Controller
         
         $validatedData = $validator->getData();
         
+        DB::beginTransaction();
         // Create a new user
         $user = User::create([
             'type' => $validatedData['user_type'],
@@ -45,12 +47,12 @@ class UserController extends Controller
             [
                 'user_id' => $user->id,
                 'plan_id' => Plan::idByName("BALANCE"),
-                'name' => $validatedData["user_nickname"],
+                'name' => "",
             ]
         );
 
         // Create a new wallet
-        $depositAccount = Wallet::create(
+        $wallet = Wallet::create(
             [
                 'user_id' => $user->id,
                 'wallet' => $validatedData["wallet"],
@@ -58,13 +60,15 @@ class UserController extends Controller
         );
 
         // Return a response with the newly created user
-        if ($depositAccount) {
+        if ($depositAccount && $wallet) {
+            DB::commit();
             return response()->json([
                 'status' => 'true',
                 'message' => 'User created successfully',
                 'user' => $user,
             ], 201);
         } else {
+            DB::rollBack();
             return response()->json([
                 'status' => 'false',
                 'message' => 'Failed to create the user',
@@ -75,7 +79,10 @@ class UserController extends Controller
     public function getUserByTgid(Request $request)
     {
         // Retrieve the user by tgid
-        $user = User::with("depositAccount.plan")->with("wallet")->where("tgid", $request->user_tgid)->get();
+        $user = User::with(['depositAccount', 'wallet', 'depositAccount.transactions' => function ($query) {
+            $query->selectRaw('deposit_account_id, sum(amount) as balance')
+                  ->groupBy('deposit_account_id');
+        }])->where("tgid", $request->user_tgid)->first();
 
         // Return a response with the user information
         if ($user) {
@@ -88,6 +95,49 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'false',
                 'message' => 'User not found',
+            ], 404);
+        }
+    }
+
+    public function updateDepositAccount(Request $request)
+    {
+        $validator = Validator::make($request->all(), [ 
+            'user_tgid' => 'required|exists:users,tgid',
+            'plan' => 'required|exists:plans,name',
+        ]);
+        if ($validator->fails()) { 
+            $response = [
+                        'status' => 'false',
+                        'error' => $validator->errors(),
+                    ];
+            return response()->json($response, 401);   
+        }
+        
+        $validatedData = $validator->getData();
+        
+        DB::beginTransaction();
+        // Create a new deposit account
+        $depositAccount = DepositAccount::create(
+            [
+                'user_id' => User::where("tgid", $validatedData["user_tgid"])->first("id")->id,
+                'plan_id' => Plan::idByName($validatedData["plan"]),
+                'name' => "",
+            ]
+        );
+
+        // Return a response with the newly created user
+        if ($depositAccount) {
+            DB::commit();
+            return response()->json([
+                'status' => 'true',
+                'message' => 'User created successfully',
+                'depositAccount' => $depositAccount,
+            ], 201);
+        } else {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'false',
+                'message' => 'Failed to create the user',
             ], 404);
         }
     }
@@ -108,10 +158,15 @@ class UserController extends Controller
         }
     
         $validatedData = $validator->getData();
-        $user = User::userByTgid($validatedData["user_tgid"]);
-        $userDepositAccount = $user->depositAccount()->where(["plan_id"=>"2"])->first();
+        $user = User::userByTgid($validatedData["user_tgid"])->with([
+            'depositAccount' => function ($query) {
+                $query->with('plan')->whereHas('plan', function ($subQuery) {
+                    $subQuery->where('name', 'BALANCE');
+                });
+            }
+        ])->first();
 
-        if(!$user || !$userDepositAccount) return response()->json([
+        if(!$user) return response()->json([
             "status"=> "false",
             "message"=> "User or depositAccount not found",
         ]);
@@ -130,10 +185,11 @@ class UserController extends Controller
         $uuid = Str::uuid();
         $amount = $validatedData["amount"];
 
+        DB::beginTransaction();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $user->id,
-            "deposit_account_id" => $userDepositAccount->id,
+            "deposit_account_id" => $user->depositAccount()->first()->id,
             "amount" => $amount,
         ]);
         $transaction_1 = Transaction::create([
@@ -142,13 +198,84 @@ class UserController extends Controller
             "deposit_account_id" => $systemAccount->id,
             "amount" => -$amount,
         ]);
-
+        
         if ($transaction_0 && $transaction_1) {
+            DB::commit();
             return response()->json([
                 'status' => 'true',
                 'message' => 'Transaction of '.$amount.' created successfully',
             ], 201);
         } else {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'false',
+                'message' => 'Failed to create the transaction',
+            ], 404);
+        }
+    }
+    
+    public function transfer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [ 
+            'from_tgid' => 'required|exists:users,tgid',
+            'to_tgid' => 'required|exists:users,tgid',
+            'amount' => 'required',
+        ]);
+        
+        if ($validator->fails()) {
+            $response = [
+                        'status' => 'false',
+                        'error' => $validator->errors(),
+                    ];
+            return response()->json($response, 401);
+        }
+    
+        $validatedData = $validator->getData();
+        $from_user = User::with([
+            'depositAccount' => function ($query) {
+                $query->with('plan')->whereHas('plan', function ($subQuery) {
+                    $subQuery->where('name', 'BALANCE');
+                });
+            }
+        ])->where("tgid", $validatedData["from_tgid"])->first();
+        $to_user = User::with([
+            'depositAccount' => function ($query) {
+                $query->with('plan')->whereHas('plan', function ($subQuery) {
+                    $subQuery->where('name', 'BALANCE');
+                });
+            }
+        ])->where("tgid", $validatedData["to_tgid"])->first();
+
+        if(!$from_user || !$to_user) return response()->json([
+            "status"=> "false",
+            "message"=> "User or depositAccount not found",
+        ]);
+
+        $uuid = Str::uuid();
+        $amount = $validatedData["amount"];
+
+        DB::beginTransaction();
+        $transaction_0 = Transaction::create([
+            "uuid" => $uuid,
+            "user_id" => $to_user->id,
+            "deposit_account_id" => $to_user->depositAccount()->first()->id,
+            "amount" => $amount,
+        ]);
+        $transaction_1 = Transaction::create([
+            "uuid" => $uuid,
+            "user_id" => $from_user->id,
+            "deposit_account_id" => $from_user->depositAccount()->first()->id,
+            "amount" => -$amount,
+        ]);
+        
+        if ($transaction_0 && $transaction_1) {
+            DB::commit();
+            return response()->json([
+                'status' => 'true',
+                'message' => 'Transaction of '.$amount.' from '.$from_user->tgid.' to '.$to_user->tgid.' created successfully',
+            ], 201);
+        } else {
+            DB::rollBack();
             return response()->json([
                 'status' => 'false',
                 'message' => 'Failed to create the transaction',

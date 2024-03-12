@@ -21,11 +21,13 @@ Route::get('/test', function () {
     return response()->json(['status' => true]);
 });
 
-Route::post('/user', [UserController::class, 'store']);
-Route::post('/deposit', [UserController::class, 'deposit']);
 Route::get('/user/{user_tgid}', [UserController::class, 'getUserByTgid']);
+Route::post('/user', [UserController::class, 'store']);
 Route::post('/check_wallet', [WalletController::class, 'checkWallet']);
 Route::post('/update_wallet', [WalletController::class, 'updateWallet']);
+Route::post('/deposit', [UserController::class, 'deposit']);
+Route::post('/create_deposit_account', [UserController::class, 'updateDepositAccount']);
+Route::post('/transfer', [UserController::class, 'transfer']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
