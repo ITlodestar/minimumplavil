@@ -84,14 +84,15 @@ class UserController extends Controller
                   ->groupBy('deposit_account_id')->first();
         }])->where("tgid", $request->user_tgid)->first();
 
-        $user->depositAccount->map(function ($depositAccount) {
-            $depositAccount->balance = $depositAccount->transactions->first()->balance;
-            unset($depositAccount->transactions);
-            return $depositAccount;
-        });
-
         // Return a response with the user information
         if ($user) {
+            $user->depositAccount->map(function ($depositAccount) {
+                if(!$depositAccount) return $depositAccount;
+                $depositAccount->balance = $depositAccount->transactions->first()->balance;
+                unset($depositAccount->transactions);
+                return $depositAccount;
+            });
+    
             return response()->json([
                 'status' => 'true',
                 'message' => 'User found',
