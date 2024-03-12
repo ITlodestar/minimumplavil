@@ -33,20 +33,17 @@ class Finance extends Command
     public function transfer($data)
     {
         $rules = [
-            'from_account_id' => 'required|exists:users,tgid',
+            'from_account_id' => 'required|exists:deposit_accounts,id',
             'from_plan' => 'required|string|exists:plans,name',
-            'to_account_id' => 'required|exists:users,tgid',
+            'to_account_id' => 'required|exists:deposit_accounts,id',
             'to_plan' => 'required|string|exists:plans,name',
             'amount' => 'required|numeric',
         ];
         $validator = Validator::make($data, $rules);
         
         if ($validator->fails()) {
-            $response = [
-                        'status' => 'false',
-                        'error' => $validator->errors(),
-                    ];
-            return response()->json($response, 401);
+            var_dump($validator->errors());
+            return false;
         }
     
         $validatedData = $validator->getData();
@@ -59,10 +56,7 @@ class Finance extends Command
                 $subQuery->where('name', 'BALANCE');
             })->find($validatedData["to_account_id"]);
 
-        if(!$from_account || !$to_account) return response()->json([
-            "status"=> "false",
-            "message"=> "User or depositAccount not found",
-        ]);
+        if(!$from_account || !$to_account) return false;
 
         $uuid = Str::uuid();
         $amount = $validatedData["amount"];
@@ -92,11 +86,7 @@ class Finance extends Command
         // Retrieve the wallet by tgid
         $systemUser = User::userByTgid("0");
         
-        if(!$systemUser) return response()->json([
-            "status"=> "false",
-            "message"=> "SystemAccount not registered yet",
-        ]);
-
+        if(!$systemUser) return "SystemAccount not registered yet";
         $validUserDepositAccounts = DepositAccount::notExpiredAccounts();
         
         $transactionResult = true;
@@ -106,7 +96,11 @@ class Finance extends Command
                 $transactionResult = false;
                 break;
             }
-            $amount = 100;
+            $balance = $account->getAccountBalance();
+            $percentage = $account->getAccountPercentage();
+            
+            $amount = $balance * $percentage / 100;
+            var_dump($account);
             $data = [
                 'from_account_id' => $systemUser->depositAccount()->where("name", "BALANCE")->first()->id,
                 'from_plan' => "BALANCE",
@@ -115,7 +109,7 @@ class Finance extends Command
                 'amount' => $amount,
             ];
             $transactionResult = $this->transfer($data);
-            
+            var_dump($transactionResult);
             if (!$transactionResult) {
                 break;
             }
@@ -124,16 +118,10 @@ class Finance extends Command
         // Return a response with the wallet information
         if($transactionResult) {
             DB::commit();
-            return response()->json([
-                'status' => 'true',
-                'message' => 'Percent transaction from created successfully',
-            ], 201);
+            return 'Percent transaction from created successfully';
         } else {
             DB::rollBack();
-            return response()->json([
-                'status' => 'false',
-                'message' => 'Failed to create the transaction',
-            ], 404);
+            return $balance;
         }
     }
 }

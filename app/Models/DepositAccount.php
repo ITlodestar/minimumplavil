@@ -64,9 +64,21 @@ class DepositAccount extends Model
     public static function notExpiredAccounts()
     {
         return DepositAccount::with('plan')
-            // ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
             ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
             ->where('plans.percentage', '>', 0)
-            ->get();
+            ->get("deposit_accounts.*");
+    }
+    
+    public function getAccountBalance()
+    {
+        // Calc and return sum of amount
+        return $this->transactions()->sum('amount');
+    }
+    
+    public function getAccountPercentage()
+    {
+        // Calc and return sum of amount
+        return $this->plan()->first()->percentage;
     }
 }
