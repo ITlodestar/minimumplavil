@@ -85,7 +85,7 @@ class UserController extends Controller
         }])->where("tgid", $request->user_tgid)->first();
 
         // Return a response with the user information
-        if ($user) {
+        if ($user && $user->depositAccount) {
             $user->depositAccount->map(function ($depositAccount) {
                 if(!$depositAccount) return $depositAccount;
                 $depositAccount->balance = $depositAccount->transactions->first()->balance;
