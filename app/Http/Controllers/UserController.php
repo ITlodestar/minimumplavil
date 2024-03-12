@@ -88,7 +88,9 @@ class UserController extends Controller
         if ($user && $user->depositAccount) {
             $user->depositAccount->map(function ($depositAccount) {
                 if(!$depositAccount) return $depositAccount;
-                $depositAccount->balance = $depositAccount->transactions->first()->balance;
+                $depositAccount->balance = $depositAccount->transactions->isNotEmpty()
+                ? $depositAccount->transactions->first()->balance
+                : 0;
                 unset($depositAccount->transactions);
                 return $depositAccount;
             });
