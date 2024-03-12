@@ -28,15 +28,6 @@ class DepositAccount extends Model
     ];
 
     /**
-     * The attributes that should have default value.
-     *
-     * @var array<int, string>
-     */
-    // protected $attributes = [
-    //     "plan_id" => "1",
-    // ];
-
-    /**
      * Get the user that owns the depositAccount.
      */
     public function user(): BelongsTo
@@ -63,10 +54,19 @@ class DepositAccount extends Model
     public static function notExpiredUsers()
     {
         return DepositAccount::with('user', 'plan')
-        ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
-        ->join('users', 'deposit_accounts.user_id', '=', 'users.id') // Add this join
-        ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
-        ->where('plans.percentage', '>', 0)
-        ->get(['deposit_accounts.*', 'users.*', 'plans.*']);
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+            ->join('users', 'deposit_accounts.user_id', '=', 'users.id') // Add this join
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
+            ->where('plans.percentage', '>', 0)
+            ->get(['deposit_accounts.*', 'users.*', 'plans.*']);
+    }
+    
+    public static function notExpiredAccounts()
+    {
+        return DepositAccount::with('plan')
+            // ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
+            ->where('plans.percentage', '>', 0)
+            ->get();
     }
 }

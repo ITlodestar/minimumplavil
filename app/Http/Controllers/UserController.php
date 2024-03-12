@@ -81,7 +81,7 @@ class UserController extends Controller
         // Retrieve the user by tgid
         $user = User::with(['depositAccount', 'wallet', 'depositAccount.transactions' => function ($query) {
             $query->selectRaw('deposit_account_id, sum(amount) as balance')
-                  ->groupBy('deposit_account_id');
+                  ->groupBy('deposit_account_id')->first();
         }])->where("tgid", $request->user_tgid)->first();
 
         // Return a response with the user information
@@ -99,7 +99,7 @@ class UserController extends Controller
         }
     }
 
-    public function updateDepositAccount(Request $request)
+    public function createDepositAccount(Request $request)
     {
         $validator = Validator::make($request->all(), [ 
             'user_tgid' => 'required|exists:users,tgid',
@@ -217,8 +217,8 @@ class UserController extends Controller
     public function transfer(Request $request)
     {
         $validator = Validator::make($request->all(), [ 
-            'from_tgid' => 'required|exists:users,tgid',
-            'to_tgid' => 'required|exists:users,tgid',
+            'from_account_id' => 'required|exists:deposit_accounts,id',
+            'to_account_id' => 'required|exists:deposit_accounts,id',
             'amount' => 'required',
         ]);
         
@@ -231,22 +231,16 @@ class UserController extends Controller
         }
     
         $validatedData = $validator->getData();
-        $from_user = User::with([
-            'depositAccount' => function ($query) {
-                $query->with('plan')->whereHas('plan', function ($subQuery) {
-                    $subQuery->where('name', 'BALANCE');
-                });
-            }
-        ])->where("tgid", $validatedData["from_tgid"])->first();
-        $to_user = User::with([
-            'depositAccount' => function ($query) {
-                $query->with('plan')->whereHas('plan', function ($subQuery) {
-                    $subQuery->where('name', 'BALANCE');
-                });
-            }
-        ])->where("tgid", $validatedData["to_tgid"])->first();
+        $from_account = DepositAccount::with('plan')
+            ->whereHas('plan', function ($subQuery) {
+                $subQuery->where('name', 'BALANCE');
+            })->find($validatedData["from_account_id"]);
+        $to_account = DepositAccount::with('plan')
+            ->whereHas('plan', function ($subQuery) {
+                $subQuery->where('name', 'BALANCE');
+            })->find($validatedData["to_account_id"]);
 
-        if(!$from_user || !$to_user) return response()->json([
+        if(!$from_account || !$to_account) return response()->json([
             "status"=> "false",
             "message"=> "User or depositAccount not found",
         ]);
@@ -257,14 +251,14 @@ class UserController extends Controller
         DB::beginTransaction();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $to_user->id,
-            "deposit_account_id" => $to_user->depositAccount()->first()->id,
+            "user_id" => $to_account->user_id,
+            "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $from_user->id,
-            "deposit_account_id" => $from_user->depositAccount()->first()->id,
+            "user_id" => $from_account->user_id,
+            "deposit_account_id" => $from_account->id,
             "amount" => -$amount,
         ]);
         
@@ -272,7 +266,7 @@ class UserController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'true',
-                'message' => 'Transaction of '.$amount.' from '.$from_user->tgid.' to '.$to_user->tgid.' created successfully',
+                'message' => 'Transaction of '.$amount.' from '.$from_account->id.' to '.$to_account->id.' created successfully',
             ], 201);
         } else {
             DB::rollBack();

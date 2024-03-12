@@ -33,9 +33,9 @@ class Finance extends Command
     public function transfer($data)
     {
         $rules = [
-            'from_tgid' => 'required|exists:users,tgid',
+            'from_account_id' => 'required|exists:users,tgid',
             'from_plan' => 'required|string|exists:plans,name',
-            'to_tgid' => 'required|exists:users,tgid',
+            'to_account_id' => 'required|exists:users,tgid',
             'to_plan' => 'required|string|exists:plans,name',
             'amount' => 'required|numeric',
         ];
@@ -50,22 +50,16 @@ class Finance extends Command
         }
     
         $validatedData = $validator->getData();
-        $from_user = User::with([
-            'depositAccount' => function ($query) use ( $validatedData ) {
-                $query->with('plan')->whereHas('plan', function ($subQuery) use ( $validatedData ) {
-                    $subQuery->where('name', $validatedData["from_plan"]);
-                });
-            }
-        ])->where("tgid", $validatedData["from_tgid"])->first();
-        $to_user = User::with([
-            'depositAccount' => function ($query) use ( $validatedData ) {
-                $query->with('plan')->whereHas('plan', function ($subQuery) use ( $validatedData ) {
-                    $subQuery->where('name', $validatedData["to_plan"]);
-                });
-            }
-        ])->where("tgid", $validatedData["to_tgid"])->first();
+        $from_account = DepositAccount::with('plan')
+            ->whereHas('plan', function ($subQuery) {
+                $subQuery->where('name', 'BALANCE');
+            })->find($validatedData["from_account_id"]);
+        $to_account = DepositAccount::with('plan')
+            ->whereHas('plan', function ($subQuery) {
+                $subQuery->where('name', 'BALANCE');
+            })->find($validatedData["to_account_id"]);
 
-        if(!$from_user || !$to_user) return response()->json([
+        if(!$from_account || !$to_account) return response()->json([
             "status"=> "false",
             "message"=> "User or depositAccount not found",
         ]);
@@ -76,14 +70,14 @@ class Finance extends Command
         // DB::beginTransaction();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $to_user->id,
-            "deposit_account_id" => $to_user->depositAccount()->first()->id,
+            "user_id" => $to_account->user_id,
+            "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $from_user->id,
-            "deposit_account_id" => $from_user->depositAccount()->first()->id,
+            "user_id" => $from_account->user_id,
+            "deposit_account_id" => $from_account->id,
             "amount" => -$amount,
         ]);
         
@@ -103,7 +97,7 @@ class Finance extends Command
             "message"=> "SystemAccount not registered yet",
         ]);
 
-        $validUserDepositAccounts = DepositAccount::notExpiredUsers();
+        $validUserDepositAccounts = DepositAccount::notExpiredAccounts();
         
         $transactionResult = true;
         DB::beginTransaction();
@@ -114,9 +108,9 @@ class Finance extends Command
             }
             $amount = 100;
             $data = [
-                'from_tgid' => $systemUser,
+                'from_account_id' => $systemUser->depositAccount()->where("name", "BALANCE")->first()->id,
                 'from_plan' => "BALANCE",
-                'to_tgid' => $account->tgid,
+                'to_account_id' => $account->id,
                 'to_plan' => "BALANCE",
                 'amount' => $amount,
             ];
