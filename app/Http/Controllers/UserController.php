@@ -126,13 +126,24 @@ class UserController extends Controller
         
         DB::beginTransaction();
         // Create a new deposit account
-        $depositAccount = DepositAccount::create(
-            [
-                'user_id' => User::where("tgid", $validatedData["user_tgid"])->first("id")->id,
-                'plan_id' => Plan::idByName($validatedData["plan"]),
-                'name' => "",
-            ]
-        );
+        try {
+            $depositAccount = DepositAccount::create(
+                [
+                    'user_id' => User::where("tgid", $validatedData["user_tgid"])->first("id")->id,
+                    'plan_id' => Plan::idByName($validatedData["plan"]),
+                    'name' => "",
+                ]
+            );
+        } catch (\Throwable $th) {
+            $depositAccount = null;
+        }
+        // $depositAccount = DepositAccount::create(
+        //     [
+        //         'user_id' => User::where("tgid", $validatedData["user_tgid"])->first("id")->id,
+        //         'plan_id' => Plan::idByName($validatedData["plan"]),
+        //         'name' => "",
+        //     ]
+        // );
 
         // Return a response with the newly created user
         if ($depositAccount) {

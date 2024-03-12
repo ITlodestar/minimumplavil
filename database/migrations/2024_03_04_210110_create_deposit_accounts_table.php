@@ -14,13 +14,14 @@ class CreateDepositAccountsTable extends Migration
     public function up()
     {
     Schema::create('deposit_accounts', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained('users');
-    $table->foreignId('plan_id')->constrained('plans');
-    $table->string('name', 255); // Add this line
-    $table->timestamps();
-});
-}
+        $table->id();
+        $table->foreignId('user_id')->constrained('users');
+        $table->foreignId('plan_id')->constrained('plans');
+        $table->unique(['user_id', 'plan_id']);
+        $table->string('name', 255); // Add this line
+        $table->timestamps();
+    });
+    }
 
     /**
      * Reverse the migrations.
@@ -29,6 +30,9 @@ class CreateDepositAccountsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('deposit_accounts');
+        Schema::table('deposit_accounts', function (Blueprint $table) {
+            $table->dropUnique(['user_id', 'plan_id']);
+            $table->dropIfExists();
+        });
     }
 }
