@@ -34,9 +34,9 @@ class Finance extends Command
     {
         $rules = [
             'from_account_id' => 'required|exists:deposit_accounts,id',
-            'from_plan' => 'required|string|exists:plans,name',
+            // 'from_plan' => 'required|string|exists:plans,name',
             'to_account_id' => 'required|exists:deposit_accounts,id',
-            'to_plan' => 'required|string|exists:plans,name',
+            // 'to_plan' => 'required|string|exists:plans,name',
             'amount' => 'required|numeric',
         ];
         $validator = Validator::make($data, $rules);
@@ -48,18 +48,22 @@ class Finance extends Command
     
         $validatedData = $validator->getData();
         $from_account = DepositAccount::with('plan')
-            ->whereHas('plan', function ($subQuery) {
-                $subQuery->where('name', 'BALANCE');
-            })->find($validatedData["from_account_id"]);
+            // ->whereHas('plan', function ($subQuery) {
+            //     $subQuery->where('name', 'BALANCE');
+            // })
+            ->find($validatedData["from_account_id"]);
         $to_account = DepositAccount::with('plan')
-            ->whereHas('plan', function ($subQuery) {
-                $subQuery->where('name', 'BALANCE');
-            })->find($validatedData["to_account_id"]);
+            // ->whereHas('plan', function ($subQuery) {
+            //     $subQuery->where('name', 'BALANCE');
+            // })
+            ->find($validatedData["to_account_id"]);
 
         if(!$from_account || !$to_account) return false;
 
         $uuid = Str::uuid();
         $amount = $validatedData["amount"];
+
+        if($amount <= 0) return false;
 
         // DB::beginTransaction();
         $transaction_0 = Transaction::create([
@@ -91,6 +95,7 @@ class Finance extends Command
         
         $transactionResult = true;
         DB::beginTransaction();
+        print("Begin\n");
         foreach($validUserDepositAccounts as $account) {
             if(!$account) {
                 $transactionResult = false;
@@ -100,16 +105,15 @@ class Finance extends Command
             $percentage = $account->getAccountPercentage();
             
             $amount = $balance * $percentage / 100;
-            var_dump($account);
+            if($amount <= 0) continue;
             $data = [
                 'from_account_id' => $systemUser->depositAccount()->where("name", "BALANCE")->first()->id,
-                'from_plan' => "BALANCE",
+                // 'from_plan' => "BALANCE",
                 'to_account_id' => $account->id,
-                'to_plan' => "BALANCE",
+                // 'to_plan' => "BALANCE",
                 'amount' => $amount,
             ];
             $transactionResult = $this->transfer($data);
-            var_dump($transactionResult);
             if (!$transactionResult) {
                 break;
             }
@@ -117,9 +121,11 @@ class Finance extends Command
 
         // Return a response with the wallet information
         if($transactionResult) {
+            printf("Commit");
             DB::commit();
             return 'Percent transaction from created successfully';
         } else {
+            printf("Rollback");
             DB::rollBack();
             return $balance;
         }
