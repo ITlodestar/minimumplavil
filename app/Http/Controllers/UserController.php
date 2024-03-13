@@ -92,6 +92,7 @@ class UserController extends Controller
                 ? $depositAccount->transactions->first()->balance
                 : 0;
                 unset($depositAccount->transactions);
+                unset($depositAccount->uuid);
                 return $depositAccount;
             });
     
@@ -166,6 +167,7 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [ 
             'user_tgid' => 'required|exists:users,tgid',
+            'plan'=> 'required|exists:plans,name',
             'amount' => 'required',
         ]);
         
@@ -178,25 +180,33 @@ class UserController extends Controller
         }
     
         $validatedData = $validator->getData();
-        $systemUserId = 0;
+        $systemUserId = User::userByTgid(0)->id;
         $user = User::userByTgid($validatedData["user_tgid"]);
+        $systemPlanId = Plan::planByName("SYSTEM")->id;
         $systemAccount = DepositAccount::where([
             "user_id"=>$systemUserId,
-            "name"=>"OUT",
+            "plan_id"=>$systemPlanId,
+            "name"=>"IN",
         ])->first();
+        $userPlanId = Plan::planByName($validatedData["plan"])->id;
 
         $from_account = $systemAccount;
         $to_account = DepositAccount::with('plan')
             ->where([
                 "user_id"=>$user->id,
-                "plan_id"=>"2",
+                "plan_id"=>$userPlanId,
                 ])
             ->first();
 
         if(!$from_account || !$to_account) return response()->json([
             "status"=> "false",
             "message"=> "User or depositAccount not found",
-            "error"=>$from_account
+            "error"=>$from_account,
+            "data"=>[
+                "user_id"=>$systemUserId,
+                "plan_id"=>$systemPlanId,
+                "name"=>"IN",
+            ]
         ]);
 
         if(!$systemAccount) return response()->json([
@@ -204,16 +214,17 @@ class UserController extends Controller
             "message"=> "SystemAccount not registered yet",
         ]);
 
-        $uuid = Str::uuid();
         $amount = $validatedData["amount"];
-
+        
         DB::beginTransaction();
+        $uuid = Str::uuid();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $to_account->user_id,
             "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
+        $uuid = Str::uuid();
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $from_account->user_id,

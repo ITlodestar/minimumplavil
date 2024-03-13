@@ -34,4 +34,9 @@ class Plan extends Model
     {
         return Plan::where("name", $name)->first("id")->id;
     }
+
+    public static function planByName($name)
+    {
+        return Plan::where("name", $name)->first();
+    }
 }
