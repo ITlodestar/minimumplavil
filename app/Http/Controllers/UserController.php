@@ -178,24 +178,26 @@ class UserController extends Controller
         }
     
         $validatedData = $validator->getData();
-        $user = User::userByTgid($validatedData["user_tgid"])->with([
-            'depositAccount' => function ($query) {
-                $query->with('plan')->whereHas('plan', function ($subQuery) {
-                    $subQuery->where('name', 'BALANCE');
-                });
-            }
-        ])->first();
-
-        if(!$user) return response()->json([
-            "status"=> "false",
-            "message"=> "User or depositAccount not found",
-        ]);
-
-        $systemUser = User::userByTgid("0");
+        $systemUserId = 0;
+        $user = User::userByTgid($validatedData["user_tgid"]);
         $systemAccount = DepositAccount::where([
-            "user_id"=>$systemUser->id,
+            "user_id"=>$systemUserId,
             "name"=>"OUT",
         ])->first();
+
+        $from_account = $systemAccount;
+        $to_account = DepositAccount::with('plan')
+            ->where([
+                "user_id"=>$user->id,
+                "plan_id"=>"2",
+                ])
+            ->first();
+
+        if(!$from_account || !$to_account) return response()->json([
+            "status"=> "false",
+            "message"=> "User or depositAccount not found",
+            "error"=>$from_account
+        ]);
 
         if(!$systemAccount) return response()->json([
             "status"=> "false",
@@ -208,14 +210,14 @@ class UserController extends Controller
         DB::beginTransaction();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $user->id,
-            "deposit_account_id" => $user->depositAccount()->first()->id,
+            "user_id" => $to_account->user_id,
+            "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
-            "user_id" => $systemUser->id,
-            "deposit_account_id" => $systemAccount->id,
+            "user_id" => $from_account->user_id,
+            "deposit_account_id" => $from_account->id,
             "amount" => -$amount,
         ]);
         
@@ -223,7 +225,7 @@ class UserController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'true',
-                'message' => 'Transaction of '.$amount.' created successfully',
+                'message' => 'Deposit transaction of '.$amount.' from '.$from_account->id.' to '.$to_account->id.' created successfully',
             ], 201);
         } else {
             DB::rollBack();
@@ -288,7 +290,7 @@ class UserController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'true',
-                'message' => 'Transaction of '.$amount.' from '.$from_account->id.' to '.$to_account->id.' created successfully',
+                'message' => 'Transfer transaction of '.$amount.' from '.$from_account->id.' to '.$to_account->id.' created successfully',
             ], 201);
         } else {
             DB::rollBack();
