@@ -91,7 +91,7 @@ class Finance extends Command
     {
         // Retrieve the wallet by tgid
         $systemUserId = User::userByTgid(0)->id;
-        $systemPlanId = Plan::planByName("SYSTEM")->id;
+        $systemPlanId = Plan::planByName("BALANCE")->id;
         $systemAccount = DepositAccount::where([
             "user_id"=>$systemUserId,
             "plan_id"=>$systemPlanId,
