@@ -111,12 +111,15 @@ class Finance extends Command
                 $transactionResult = false;
                 break;
             }
+            var_dump($account->id);
+            var_dump($account->user_id);
             $balance = $account->getAccountBalance();
             var_dump($balance);
             $percentage = $account->getAccountPercentage();
             var_dump($percentage);
             
             $amount = $balance * $percentage / 100;
+            var_dump($amount);
             if($amount <= 0) continue;
             $data = [
                 'from_account_id' => $from_account->id,
