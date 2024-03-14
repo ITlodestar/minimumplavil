@@ -95,7 +95,7 @@ class Finance extends Command
         $systemAccount = DepositAccount::where([
             "user_id"=>$systemUserId,
             "plan_id"=>$systemPlanId,
-            "name"=>"IN",
+            "name"=>"PERCENTAGE",
         ])->first();
 
         $from_account = $systemAccount;
