@@ -73,9 +73,10 @@ class DepositAccount extends Model
     public function getAccountPureBalance()
     {
         $systemAccount = DepositAccount::where("user_id","=", 0)->where("name","=", "PERCENTAGE")->first();
+        if(!$systemAccount) return 0;
         // Calc and return sum of amount
-        return $this->transactions
-            ->raw('NOT EXISTS (
+        return $this->transactions()
+            ->whereRaw('NOT EXISTS (
                 SELECT 1
                 FROM transactions as t2
                 WHERE t2.uuid = transactions.uuid
