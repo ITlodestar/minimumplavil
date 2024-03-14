@@ -77,13 +77,13 @@ class UserController extends Controller
     }
 
     public function getUserByTgid(Request $request)
-    {
+    {        
         // Retrieve the user by tgid
         $user = User::with(['depositAccount', 'wallet', 'depositAccount.transactions' => function ($query) {
             $query->selectRaw('deposit_account_id, sum(amount) as balance')
-                  ->groupBy('deposit_account_id')->first();
+                  ->groupBy('deposit_account_id');
         }])->where("tgid", $request->user_tgid)->first();
-
+        
         // Return a response with the user information
         if ($user && $user->depositAccount) {
             $user->depositAccount->map(function ($depositAccount) {
@@ -99,7 +99,7 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'true',
                 'message' => 'User found',
-                'user' => $user,
+                'user' => $user->depositAccount,
             ]);
         } else {
             return response()->json([
