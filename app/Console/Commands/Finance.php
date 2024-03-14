@@ -107,7 +107,7 @@ class Finance extends Command
             $amount = $balance * $percentage / 100;
             if($amount <= 0) continue;
             $data = [
-                'from_account_id' => $systemUser->depositAccount()->where("name", "BALANCE")->first()->id,
+                'from_account_id' => $systemUser->depositAccount->where("name", "IN")->first()->id,
                 // 'from_plan' => "BALANCE",
                 'to_account_id' => $account->id,
                 // 'to_plan' => "BALANCE",
