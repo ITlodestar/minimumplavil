@@ -74,13 +74,13 @@ class DepositAccount extends Model
     {
         $systemAccount = DepositAccount::where("user_id","=", 0)->where("name","=", "PERCENTAGE")->first();
         // Calc and return sum of amount
-        return $this->transactions()
+        return $this->transactions
             ->whereRaw('NOT EXISTS (
                 SELECT 1
                 FROM transactions as t2
                 WHERE t2.uuid = transactions.uuid
                 AND t2.user_id = 0
-                AND t2.deposit_account_id = '.$systemAccount.'
+                AND t2.deposit_account_id = '.$systemAccount->id.'
             )')->sum('amount');
     }
     
