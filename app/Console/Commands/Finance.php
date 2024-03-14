@@ -65,7 +65,6 @@ class Finance extends Command
 
         if($amount <= 0) return false;
 
-        // DB::beginTransaction();
         $uuid = Str::uuid();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
@@ -73,7 +72,6 @@ class Finance extends Command
             "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
-        $uuid = Str::uuid();
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $from_account->user_id,
@@ -100,7 +98,10 @@ class Finance extends Command
 
         $from_account = $systemAccount;
         
-        if(!$from_account) return "SystemAccount not registered yet";
+        if(!$from_account) {
+            printf("SystemAccount is not registered yet");
+            return "SystemAccount is not registered yet";
+        }
         $validUserDepositAccounts = DepositAccount::notExpiredAccounts();
         
         $transactionResult = true;
@@ -113,7 +114,7 @@ class Finance extends Command
             }
             var_dump($account->id);
             var_dump($account->user_id);
-            $balance = $account->getAccountBalance();
+            $balance = $account->getAccountPureBalance();
             var_dump($balance);
             $percentage = $account->getAccountPercentage();
             var_dump($percentage);

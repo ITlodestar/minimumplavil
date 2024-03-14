@@ -224,7 +224,6 @@ class UserController extends Controller
             "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
-        $uuid = Str::uuid();
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $from_account->user_id,
