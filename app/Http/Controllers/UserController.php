@@ -180,8 +180,8 @@ class UserController extends Controller
         }
     
         $validatedData = $validator->getData();
-        $systemUserId = User::userByTgid(0)->id;
         $user = User::userByTgid($validatedData["user_tgid"]);
+        $systemUserId = User::userByTgid(0)->id;
         $systemPlanId = Plan::planByName("SYSTEM")->id;
         $systemAccount = DepositAccount::where([
             "user_id"=>$systemUserId,

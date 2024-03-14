@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Plan;
 use Illuminate\Console\Command;
 use Validator;
 use App\Models\User;
@@ -88,9 +89,17 @@ class Finance extends Command
     public function handle()
     {
         // Retrieve the wallet by tgid
-        $systemUser = User::userByTgid("0");
+        $systemUserId = User::userByTgid(0)->id;
+        $systemPlanId = Plan::planByName("SYSTEM")->id;
+        $systemAccount = DepositAccount::where([
+            "user_id"=>$systemUserId,
+            "plan_id"=>$systemPlanId,
+            "name"=>"IN",
+        ])->first();
+
+        $from_account = $systemAccount;
         
-        if(!$systemUser) return "SystemAccount not registered yet";
+        if(!$from_account) return "SystemAccount not registered yet";
         $validUserDepositAccounts = DepositAccount::notExpiredAccounts();
         
         $transactionResult = true;
@@ -102,12 +111,14 @@ class Finance extends Command
                 break;
             }
             $balance = $account->getAccountBalance();
+            var_dump($balance);
             $percentage = $account->getAccountPercentage();
+            var_dump($percentage);
             
             $amount = $balance * $percentage / 100;
             if($amount <= 0) continue;
             $data = [
-                'from_account_id' => $systemUser->depositAccount->where("name", "IN")->first()->id,
+                'from_account_id' => $from_account->id,
                 // 'from_plan' => "BALANCE",
                 'to_account_id' => $account->id,
                 // 'to_plan' => "BALANCE",
