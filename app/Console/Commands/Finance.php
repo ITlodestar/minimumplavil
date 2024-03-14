@@ -96,9 +96,7 @@ class Finance extends Command
             "name"=>"PERCENTAGE",
         ])->first();
 
-        $from_account = DepositAccount::find(15);
-        $balance = $from_account->getAccountPureBalance();
-            var_dump($balance);
+        $from_account = $systemAccount;
         if(!$from_account) {
             printf("SystemAccount is not registered yet");
             return "SystemAccount is not registered yet";
