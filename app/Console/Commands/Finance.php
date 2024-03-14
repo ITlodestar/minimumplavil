@@ -38,7 +38,7 @@ class Finance extends Command
             // 'from_plan' => 'required|string|exists:plans,name',
             'to_account_id' => 'required|exists:deposit_accounts,id',
             // 'to_plan' => 'required|string|exists:plans,name',
-            'amount' => 'required|numeric',
+            'amount' => 'required',
         ];
         $validator = Validator::make($data, $rules);
         
@@ -61,18 +61,19 @@ class Finance extends Command
 
         if(!$from_account || !$to_account) return false;
 
-        $uuid = Str::uuid();
         $amount = $validatedData["amount"];
 
         if($amount <= 0) return false;
 
         // DB::beginTransaction();
+        $uuid = Str::uuid();
         $transaction_0 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $to_account->user_id,
             "deposit_account_id" => $to_account->id,
             "amount" => $amount,
         ]);
+        $uuid = Str::uuid();
         $transaction_1 = Transaction::create([
             "uuid" => $uuid,
             "user_id" => $from_account->user_id,
@@ -124,6 +125,7 @@ class Finance extends Command
                 // 'to_plan' => "BALANCE",
                 'amount' => $amount,
             ];
+            var_dump($data);
             $transactionResult = $this->transfer($data);
             if (!$transactionResult) {
                 break;
