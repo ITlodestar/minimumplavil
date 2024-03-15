@@ -35,9 +35,7 @@ class Finance extends Command
     {
         $rules = [
             'from_account_id' => 'required|exists:deposit_accounts,id',
-            // 'from_plan' => 'required|string|exists:plans,name',
             'to_account_id' => 'required|exists:deposit_accounts,id',
-            // 'to_plan' => 'required|string|exists:plans,name',
             'amount' => 'required',
         ];
         $validator = Validator::make($data, $rules);
@@ -49,14 +47,8 @@ class Finance extends Command
     
         $validatedData = $validator->getData();
         $from_account = DepositAccount::with('plan')
-            // ->whereHas('plan', function ($subQuery) {
-            //     $subQuery->where('name', 'BALANCE');
-            // })
             ->find($validatedData["from_account_id"]);
         $to_account = DepositAccount::with('plan')
-            // ->whereHas('plan', function ($subQuery) {
-            //     $subQuery->where('name', 'BALANCE');
-            // })
             ->find($validatedData["to_account_id"]);
 
         if(!$from_account || !$to_account) return false;
@@ -111,24 +103,16 @@ class Finance extends Command
                 $transactionResult = false;
                 break;
             }
-            var_dump($account->id);
-            var_dump($account->user_id);
             $balance = $account->getAccountPureBalance();
-            var_dump($balance);
             $percentage = $account->getAccountPercentage();
-            var_dump($percentage);
             
             $amount = $balance * $percentage / 100;
-            var_dump($amount);
             if($amount <= 0) continue;
             $data = [
                 'from_account_id' => $from_account->id,
-                // 'from_plan' => "BALANCE",
                 'to_account_id' => $account->id,
-                // 'to_plan' => "BALANCE",
                 'amount' => $amount,
             ];
-            var_dump($data);
             $transactionResult = $this->transfer($data);
             if (!$transactionResult) {
                 break;
