@@ -257,14 +257,8 @@ class UserController extends Controller
     
         $validatedData = $validator->getData();
         $from_account = DepositAccount::with('plan')
-            // ->whereHas('plan', function ($subQuery) {
-            //     $subQuery->where('name', 'BALANCE');
-            // })
             ->find($validatedData["from_account_id"]);
         $to_account = DepositAccount::with('plan')
-            // ->whereHas('plan', function ($subQuery) {
-            //     $subQuery->where('name', 'BALANCE');
-            // })
             ->find($validatedData["to_account_id"]);
 
         if(!$from_account || !$to_account) return response()->json([
