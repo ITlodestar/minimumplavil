@@ -51,25 +51,6 @@ class DepositAccount extends Model
         return $this->hasMany(Transaction::class);
     }
     
-    public static function notExpiredUsers()
-    {
-        return DepositAccount::with('user', 'plan')
-            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
-            ->join('users', 'deposit_accounts.user_id', '=', 'users.id') // Add this join
-            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
-            ->where('plans.percentage', '>', 0)
-            ->get(['deposit_accounts.*', 'users.*', 'plans.*']);
-    }
-    
-    public static function notExpiredAccounts()
-    {
-        return DepositAccount::with('plan')
-            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
-            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
-            ->where('plans.percentage', '>', 0)
-            ->get("deposit_accounts.*");
-    }
-    
     public function getAccountPureBalance()
     {
         $systemAccount = DepositAccount::where("user_id","=", 0)->where("name","=", "PERCENTAGE")->first();
@@ -95,5 +76,24 @@ class DepositAccount extends Model
     {
         // Calc and return sum of amount
         return $this->plan()->first()->percentage;
+    }
+
+    public static function notExpiredUsers()
+    {
+        return DepositAccount::with('user', 'plan')
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+            ->join('users', 'deposit_accounts.user_id', '=', 'users.id') // Add this join
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
+            ->where('plans.percentage', '>', 0)
+            ->get(['deposit_accounts.*', 'users.*', 'plans.*']);
+    }
+    
+    public static function notExpiredAccounts()
+    {
+        return DepositAccount::with('plan')
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
+            ->where('plans.percentage', '>', 0)
+            ->get("deposit_accounts.*");
     }
 }

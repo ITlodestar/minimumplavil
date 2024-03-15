@@ -28,7 +28,7 @@ class UserController extends Controller
                         'status' => 'false',
                         'error' => $validator->errors(),
                     ];
-            return response()->json($response, 401);   
+            return response()->json($response, 401);
         }
         
         $validatedData = $validator->getData();
@@ -95,11 +95,18 @@ class UserController extends Controller
                 unset($depositAccount->uuid);
                 return $depositAccount;
             });
+            $validAccounts = $user->notExpiredAccountsOfUser();
+            $user->valid_accounts_count = count($validAccounts);
+            $earned = 0;
+            foreach ($validAccounts as $account) {
+                $earned += $account->getAccountBalance() - $account->getAccountPureBalance();
+            }
+            $user->earned = $earned;
     
             return response()->json([
                 'status' => 'true',
                 'message' => 'User found',
-                'user' => $user->depositAccount,
+                'user' => $user,
             ]);
         } else {
             return response()->json([

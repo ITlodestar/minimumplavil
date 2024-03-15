@@ -2,34 +2,29 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Plan;
 use Illuminate\Console\Command;
 use Validator;
 use App\Models\User;
+use App\Models\Plan;
 use App\Models\Transaction;
 use App\Models\DepositAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
-class Finance extends Command
+class CheckExpired extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:finance';
+    protected $signature = 'command:check-expired';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Percentage deposit';
-
-    public function __construct() {
-        parent::__construct();
-    }
+    protected $description = 'Check expiration of deposit accounts';
 
     public function transfer($data)
     {
@@ -78,38 +73,39 @@ class Finance extends Command
      */
     public function handle()
     {
-        // Retrieve the wallet by tgid
-        $systemUserId = User::userByTgid(0)->id;
-        $systemPlanId = Plan::planByName("BALANCE")->id;
-        $systemAccount = DepositAccount::where([
-            "user_id"=>$systemUserId,
-            "plan_id"=>$systemPlanId,
-            "name"=>"PERCENTAGE",
-        ])->first();
-
-        $from_account = $systemAccount;
-        if(!$from_account) {
-            printf("SystemAccount is not registered yet");
-            return "SystemAccount is not registered yet";
-        }
-        $validUserDepositAccounts = DepositAccount::notExpiredAccounts();
+        // Retrieve the expired accounts by maxdays
+        $expiredAccounts = DepositAccount::select('deposit_accounts.*')
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')    
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now()->subDay())
+            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '<', now())
+            ->get();
         
         $transactionResult = true;
         DB::beginTransaction();
         print("Begin\n");
-        foreach($validUserDepositAccounts as $account) {
+        foreach($expiredAccounts as $account) {
             if(!$account) {
                 $transactionResult = false;
                 break;
             }
-            $balance = $account->getAccountPureBalance();
-            $percentage = $account->getAccountPercentage();
-            
-            $amount = $balance * $percentage / 100;
+
+            $balance = $account->getAccountBalance();
+            $amount = $balance;
             if($amount <= 0) continue;
+
+            $balancePlanId = Plan::planByName("BALANCE")->id;
+            $userBalanceAccount = DepositAccount::where([
+                "user_id"=>$account->user_id,
+                "plan_id"=>$balancePlanId,
+            ])->first();
+
+            if(!$userBalanceAccount) {
+                print($account->user_id." balance account does not exist.");
+                continue;
+            }
             $data = [
-                'from_account_id' => $from_account->id,
-                'to_account_id' => $account->id,
+                'from_account_id' => $account->id,
+                'to_account_id' => $userBalanceAccount->id,
                 'amount' => $amount,
             ];
             $transactionResult = $this->transfer($data);
