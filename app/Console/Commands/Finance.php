@@ -8,6 +8,7 @@ use Validator;
 use App\Models\User;
 use App\Models\Transaction;
 use App\Models\DepositAccount;
+use App\Helper\Helper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -69,6 +70,7 @@ class Finance extends Command
             "deposit_account_id" => $from_account->id,
             "amount" => -$amount,
         ]);
+        Helper::send_tg_msg("You earned $amount today, congratulations!", User::find($to_account->user_id)->tgid);
         
         return $transaction_0 && $transaction_1;
     }

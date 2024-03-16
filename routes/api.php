@@ -22,12 +22,13 @@ Route::get('/test', function () {
 });
 
 Route::get('/user/{user_tgid}', [UserController::class, 'getUserByTgid']);
-Route::post('/user', [UserController::class, 'store'])->middleware('remap_fields');
+Route::post('/user', [UserController::class, 'store']);//->middleware('remap_fields');
 Route::post('/check_wallet', [WalletController::class, 'checkWallet']);
 Route::post('/update_wallet', [WalletController::class, 'updateWallet']);
 Route::post('/deposit', [UserController::class, 'deposit']);
 Route::post('/create_deposit_account', [UserController::class, 'createDepositAccount']);
 Route::post('/transfer', [UserController::class, 'transfer']);
+Route::post('/tgtest', [UserController::class, 'tgTest']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

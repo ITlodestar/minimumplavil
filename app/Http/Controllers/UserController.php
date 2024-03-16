@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Plan;
+use App\Helper\Helper;
 use Illuminate\Http\Request;
 use Validator;
 use Illuminate\Support\Str;
@@ -303,5 +304,23 @@ class UserController extends Controller
                 'message' => 'Failed to create the transaction',
             ], 404);
         }
+    }
+
+    public function tgTest(Request $request)
+    {
+        $validator = Validator::make($request->all(), [ 
+            'tgid' => 'required|exists:users,tgid',
+        ]);
+        if ($validator->fails()) {
+            $response = [
+                        'status' => 'false',
+                        'error' => $validator->errors(),
+                    ];
+            return response()->json($response, 401);
+        }
+    
+        $validatedData = $validator->getData();
+        Helper::send_tg_msg("hello, testing", $validatedData["tgid"]);
+        
     }
 }
