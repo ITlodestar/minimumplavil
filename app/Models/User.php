@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -75,6 +76,14 @@ class User extends Authenticatable
     public function wallet(): HasMany
     {
         return $this->hasMany(Wallet::class);
+    }
+    
+    /**
+     * Get the deposit_account associated with the user.
+     */
+    public function latestWallet(): HasOne
+    {
+        return $this->hasOne(Wallet::class)->orderBy('created_at');
     }
     
     /**

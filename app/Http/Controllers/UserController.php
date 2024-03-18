@@ -80,7 +80,7 @@ class UserController extends Controller
     public function getUserByTgid(Request $request)
     {        
         // Retrieve the user by tgid
-        $user = User::with(['depositAccount', 'wallet', 'depositAccount.transactions' => function ($query) {
+        $user = User::with(['depositAccount', 'latestWallet', 'depositAccount.transactions' => function ($query) {
             $query->selectRaw('deposit_account_id, sum(amount) as balance')
                   ->groupBy('deposit_account_id');
         }])->where("tgid", $request->user_tgid)->first();
