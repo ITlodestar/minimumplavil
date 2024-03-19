@@ -73,6 +73,17 @@ class User extends Authenticatable
     /**
      * Get the deposit_account associated with the user.
      */
+    public function validDepositAccount(): HasMany
+    {
+        return $this->hasMany(DepositAccount::class)
+        ->select('deposit_accounts.*')
+        ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+        ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now());
+    }
+    
+    /**
+     * Get the deposit_account associated with the user.
+     */
     public function wallet(): HasMany
     {
         return $this->hasMany(Wallet::class);

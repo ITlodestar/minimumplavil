@@ -76,7 +76,7 @@ class CheckExpired extends Command
     {
         // Retrieve the expired accounts by maxdays
         $expiredAccounts = DepositAccount::select('deposit_accounts.*')
-            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')    
+            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
             ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now()->subDay())
             ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '<', now())
             ->get();
