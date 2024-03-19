@@ -83,7 +83,7 @@ class User extends Authenticatable
      */
     public function latestWallet(): HasOne
     {
-        return $this->hasOne(Wallet::class)->orderBy('created_at');
+        return $this->hasOne(Wallet::class)->orderBy('created_at', 'dsc');
     }
     
     /**
