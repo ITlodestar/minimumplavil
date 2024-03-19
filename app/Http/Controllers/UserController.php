@@ -103,6 +103,7 @@ class UserController extends Controller
                 $earned += $account->getAccountBalance() - $account->getAccountPureBalance();
             }
             $user->earned = $earned;
+            unset($user->depositAccount);
     
             return response()->json([
                 'status' => 'true',
