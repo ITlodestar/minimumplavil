@@ -24,6 +24,7 @@ class UserController extends Controller
             'wallet' => 'required|unique:wallets,wallet',
             'country' => 'required',
         ]);
+        
         if ($validator->fails()) { 
             $response = [
                         'status' => 'false',
