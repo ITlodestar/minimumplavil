@@ -51,6 +51,9 @@ class DepositAccount extends Model
         return $this->hasMany(Transaction::class);
     }
     
+    /**
+     * Get a balance of the deposit_account which is not stacked by daily profit.
+     */
     public function getAccountPureBalance()
     {
         $systemAccount = DepositAccount::where("user_id","=", 0)->where("name","=", "PERCENTAGE")->first();
@@ -62,10 +65,13 @@ class DepositAccount extends Model
                 FROM transactions as t2
                 WHERE t2.uuid = transactions.uuid
                 AND t2.user_id = 0
-                AND t2.deposit_account_id = '.$systemAccount->id.'
-            )')->sum('amount');
+                AND t2.deposit_account_id = '.$systemAccount->id.')'
+            )->sum('amount');
     }
     
+    /**
+     * Get the current balance of the deposit_account.
+     */
     public function getAccountBalance()
     {
         // Calc and return sum of amount

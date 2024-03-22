@@ -77,7 +77,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(DepositAccount::class)
         ->select('deposit_accounts.*')
+        // ->groupBy('transactions.deposit_account_id')
         ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
+        // ->join('transactions', 'deposit_accounts.id', '=', 'transactions.deposit_account_id')
         ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now());
     }
     
@@ -108,14 +110,5 @@ class User extends Authenticatable
     public static function userByTgid($tgid)
     {
         return User::where("tgid", $tgid)->first();
-    }
-    
-    public function notExpiredAccountsOfUser()
-    {
-        return $this->depositAccount()->select("deposit_accounts.*")
-            ->join('plans', 'deposit_accounts.plan_id', '=', 'plans.id')
-            ->where(DB::raw('DATE_ADD(deposit_accounts.created_at, INTERVAL plans.max_days DAY)'), '>', now())
-            ->where('plans.percentage', '>', 0)
-            ->get();
     }
 }

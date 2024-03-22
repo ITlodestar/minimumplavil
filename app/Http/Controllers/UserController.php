@@ -81,29 +81,39 @@ class UserController extends Controller
     public function getUserByTgid(Request $request)
     {        
         // Retrieve the user by tgid
-        $user = User::with(['validDepositAccount', 'latestWallet', 'depositAccount.transactions' => function ($query) {
+        $user = User::with(['validDepositAccount', 'latestWallet', 'validDepositAccount.transactions' => function ($query) {
             $query->selectRaw('deposit_account_id, sum(amount) as balance')
                   ->groupBy('deposit_account_id');
         }])->where("tgid", $request->user_tgid)->first();
         
         // Return a response with the user information
-        if ($user && $user->depositAccount) {
-            $user->depositAccount->map(function ($depositAccount) {
-                if(!$depositAccount) return $depositAccount;
-                $depositAccount->balance = $depositAccount->transactions->isNotEmpty()
-                ? $depositAccount->transactions->first()->balance
+        if ($user && $user->validDepositAccount) {
+            $user->validDepositAccount->map(function ($validDepositAccount) {
+                if(!$validDepositAccount) return $validDepositAccount;
+                $validDepositAccount->balance = $validDepositAccount->transactions->isNotEmpty()
+                ? $validDepositAccount->transactions->first()->balance
                 : 0;
-                unset($depositAccount->transactions);
-                unset($depositAccount->uuid);
-                return $depositAccount;
+                unset($validDepositAccount->transactions);
             });
-            $validAccounts = $user->notExpiredAccountsOfUser();
-            $user->valid_accounts_count = count($validAccounts);
-            $earned = 0;
-            foreach ($validAccounts as $account) {
-                $earned += $account->getAccountBalance() - $account->getAccountPureBalance();
+            //     unset($depositAccount->uuid);
+            //     return $depositAccount;
+            // });
+            // $earned = $user->earned();
+            // return response()->json([
+            //     'status' => 'true',
+            //     'message' => 'User found',
+            //     'user' => $earned,
+            // ]);
+            $user->valid_accounts_count = count($user->validDepositAccount);
+            $result = 0;
+            foreach ($user->depositAccount as $account) {
+                $result += $account->getAccountBalance() - $account->getAccountPureBalance();
             }
-            $user->earned = $earned;
+            $user->earned = $result;
+            foreach ($user->depositAccount as $account) {
+                $result += $account->getAccountBalance();
+            }
+            $user->balance = $result;
             unset($user->depositAccount);
     
             return response()->json([
