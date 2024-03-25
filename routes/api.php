@@ -22,6 +22,7 @@ Route::get('/test', function () {
 });
 
 Route::get('/user/{user_tgid}', [UserController::class, 'getUserByTgid']);
+Route::get('/first_deposit/{deposit_account_id}', [UserController::class, 'getFirstDeposit']);
 Route::post('/user', [UserController::class, 'store']);//->middleware('remap_fields');
 Route::post('/check_wallet', [WalletController::class, 'checkWallet']);
 Route::post('/update_wallet', [WalletController::class, 'updateWallet']);

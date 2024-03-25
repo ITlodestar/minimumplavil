@@ -81,32 +81,26 @@ class UserController extends Controller
     public function getUserByTgid(Request $request)
     {        
         // Retrieve the user by tgid
-        $user = User::with(['validDepositAccount', 'latestWallet', 'validDepositAccount.transactions' => function ($query) {
+        $user = User::with(['validDepositAccount', 'depositAccount', 'latestWallet', 'validDepositAccount.transactions' => function ($query) {
             $query->selectRaw('deposit_account_id, sum(amount) as balance')
                   ->groupBy('deposit_account_id');
         }])->where("tgid", $request->user_tgid)->first();
         
         // Return a response with the user information
         if ($user && $user->validDepositAccount) {
-            $user->validDepositAccount->map(function ($validDepositAccount) {
+            $user->validDepositAccount->each(function ($validDepositAccount, $key) {
                 if(!$validDepositAccount) return $validDepositAccount;
+                $validDepositAccount->row_number = $key;
                 $validDepositAccount->balance = $validDepositAccount->transactions->isNotEmpty()
                 ? $validDepositAccount->transactions->first()->balance
                 : 0;
                 unset($validDepositAccount->transactions);
             });
-            //     unset($depositAccount->uuid);
-            //     return $depositAccount;
-            // });
-            // $earned = $user->earned();
-            // return response()->json([
-            //     'status' => 'true',
-            //     'message' => 'User found',
-            //     'user' => $earned,
-            // ]);
+
             $user->valid_accounts_count = count($user->validDepositAccount);
             $result = 0;
-            foreach ($user->depositAccount as $account) {
+            foreach ($user->depositAccount as $key => $account) {
+                $account->row_number = $key;
                 $result += $account->getAccountBalance() - $account->getAccountPureBalance();
             }
             $user->earned = $result;
@@ -114,7 +108,7 @@ class UserController extends Controller
                 $result += $account->getAccountBalance();
             }
             $user->balance = $result;
-            unset($user->depositAccount);
+            // unset($user->depositAccount);
     
             return response()->json([
                 'status' => 'true',
@@ -125,6 +119,26 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'false',
                 'message' => 'User not found',
+            ], 404);
+        }
+    }
+
+    public function getFirstDeposit(Request $request)
+    {        
+        // Retrieve the user by tgid
+        $tx = Transaction::where("deposit_account_id", $request->deposit_account_id)->orderBy('id')->first();
+        
+        // Return a response with the user information
+        if ($tx) {
+            return response()->json([
+                'status' => 'true',
+                'message' => 'FirstDeposit found',
+                'first_deposit' => $tx,
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'false',
+                'message' => 'FirstDeposit not found',
             ], 404);
         }
     }
@@ -140,7 +154,7 @@ class UserController extends Controller
                         'status' => 'false',
                         'error' => $validator->errors(),
                     ];
-            return response()->json($response, 401);   
+            return response()->json($response, 401);
         }
         
         $validatedData = $validator->getData();
